@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Trade Pre-Check</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- スマホでの見た目をアプリ風に -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Trade Check">
+    <meta name="theme-color" content="#121212">
+
+    <!-- PWA 用マニフェスト -->
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #00adb5;
+            --danger-color: #ff4d4d;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px 16px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 420px;
+        }
+        h1 {
+            text-align: center;
+            color: var(--accent-color);
+            margin: 8px 0 4px;
+            font-size: 1.4rem;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 16px;
+        }
+        .progress {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .card-title {
+            font-size: 0.9rem;
+            color: #bbb;
+            margin-bottom: 8px;
+        }
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .check-item:last-child {
+            margin-bottom: 0;
+        }
+        input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            accent-color: var(--accent-color);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        label {
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        label small {
+            color: #aaa;
+        }
+        .input-group {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: var(--accent-color);
+        }
+        .primary-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+        .reset-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 999px;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+        .primary-btn:active,
+        .reset-btn:active {
+            opacity: 0.7;
+        }
+        .history-list {
+            max-height: 260px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .record-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            font-size: 0.8rem;
+        }
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            color: #ccc;
+        }
+        .record-time {
+            font-weight: bold;
+        }
+        .record-summary {
+            color: #aaa;
+            line-height: 1.4;
+        }
+        .history-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        .history-clear-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #bbb;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+        }
+        .history-clear-btn:active {
+            opacity: 0.7;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #777;
+            margin-top: 12px;
+        }
+        .badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #2a2a2a;
+            color: #eee;
+        }
+        .badge-ok {
+            background: #1b5e20;
+        }
+        .badge-ng {
+            background: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📊 トレード前最終確認</h1>
+    <div class="subtitle">エントリー前に1分だけ、冷静さを確認</div>
+    <div class="progress" id="progressText">チェック完了: 0 / 4</div>
+
+    <div class="card">
+        <div class="card-title">メンタルチェック</div>
+        <div class="check-item">
+            <input type="checkbox" id="q1" data-save>
+            <label for="q1">
+                ① 感情でエントリーしていないか？<br>
+                <small>(焦り・怒り・リベンジ欲がないか)</small>
+            </label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" id="q6" data-save>
+            <label for="q6">
+                ⑥ 欲を除いた冷静な心で考えられているか？
+            </label>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">分析チェック</div>
+        <div class="check-item">
+            <input type="checkbox" id="q2" data-save>
+            <label for="q2">
+                ② エントリー根拠はデータに基づいているか？<br>
+                <small>(優位性のあるパターンか)</small>
+            </label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" id="q3" data-save>
+            <label for="q3">
+                ③ 4h / 日足 / 週足のMACDを確認したか？
+            </label>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">リスク管理</div>
+        <div class="input-group">
+            <label for="q5_input">⑤ 損切ポイント (価格・場所)</label>
+            <input type="text" id="q5_input" data-save placeholder="例: 150.50 / 直近安値下">
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+            <label for="q4_input">④ リスク・リワード (比率)</label>
+            <input type="text" id="q4_input" data-save placeholder="例: 1 : 2.5">
+        </div>
+        <div class="check-item" style="margin-top: 18px;">
+            <input type="checkbox" id="final" data-save>
+            <label for="final"><b>リスク管理を徹底し、執行する</b></label>
+        </div>
+    </div>
+
+    <!-- 記録ボタン -->
+    <button class="primary-btn" onclick="saveRecord()">この内容を記録する</button>
+
+    <!-- リセットボタン（現在入力＋保存状態をリセット） -->
+    <button class="reset-btn" onclick="resetForm()">全項目をリセット</button>
+
+    <!-- 履歴カード -->
+    <div class="card">
+        <div class="card-title">過去の記録</div>
+        <div class="history-actions">
+            <button class="history-clear-btn" onclick="clearRecords()">全ての記録を削除</button>
+        </div>
+        <div id="historyList" class="history-list">
+            <!-- JSで履歴を表示 -->
+        </div>
+    </div>
+
+    <div class="footer">
+        ※ このチェックリストは自己管理用です。<br>
+        エントリーの最終判断はご自身の責任で行ってください。
+    </div>
+</div>
+
+<script>
+    const STATE_KEY = 'trade_precheck_state_v1';
+    const RECORD_KEY = 'trade_records_v1';
+
+    function loadState() {
+        const saved = localStorage.getItem(STATE_KEY);
+        if (!saved) return;
+        try {
+            const data = JSON.parse(saved);
+            Object.entries(data).forEach(([id, value]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.type === 'checkbox') {
+                    el.checked = !!value;
+                } else {
+                    el.value = value;
+                }
+            });
+        } catch (e) {
+            console.warn('保存された状態の読み込みに失敗しました', e);
+        }
+    }
+
+    function saveState() {
+        const elements = document.querySelectorAll('[data-save]');
+        const data = {};
+        elements.forEach(el => {
+            if (!el.id) return;
+            if (el.type === 'checkbox') {
+                data[el.id] = el.checked;
+            } else {
+                data[el.id] = el.value;
+            }
+        });
+        localStorage.setItem(STATE_KEY, JSON.stringify(data));
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const targets = ['q1', 'q2', 'q3', 'q6'];
+        let checkedCount = 0;
+        targets.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.checked) checkedCount++;
+        });
+        const text = document.getElementById('progressText');
+        if (text) {
+            text.textContent = `チェック完了: ${checkedCount} / ${targets.length}`;
+        }
+    }
+
+    function saveRecord() {
+        const record = {
+            time: new Date().toISOString(),
+            q1: document.getElementById('q1').checked,
+            q2: document.getElementById('q2').checked,
+            q3: document.getElementById('q3').checked,
+            q6: document.getElementById('q6').checked,
+            riskReward: document.getElementById('q4_input').value,
+            stopLoss: document.getElementById('q5_input').value,
+            final: document.getElementById('final').checked
+        };
+
+        const currentRecords = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
+        currentRecords.unshift(record);
+        localStorage.setItem(RECORD_KEY, JSON.stringify(currentRecords));
+
+        renderRecords();
+        alert('この内容を記録しました。');
+    }
+
+    function formatDate(iso) {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${y}/${m}/${day} ${h}:${min}`;
+    }
+
+    function renderRecords() {
+        const container = document.getElementById('historyList');
+        if (!container) return;
+
+        const records = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
+
+        if (!records.length) {
+            container.innerHTML = '<div style="font-size:0.8rem; color:#777;">まだ記録はありません。</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        records.forEach((r, idx) => {
+            const okCount = [r.q1, r.q2, r.q3, r.q6].filter(Boolean).length;
+            const mentalOk = r.q1 && r.q6;
+            const analysisOk = r.q2 && r.q3;
+
+            const div = document.createElement('div');
+            div.className = 'record-item';
+
+            div.innerHTML = `
+                <div class="record-header">
+                    <span class="record-time">#${records.length - idx} ${formatDate(r.time)}</span>
+                    <span class="badge ${r.final ? 'badge-ok' : ''}">
+                        ${r.final ? '執行OK' : '要確認'}
+                    </span>
+                </div>
+                <div class="record-summary">
+                    チェック: ${okCount} / 4<br>
+                    メンタル: <span class="badge ${mentalOk ? 'badge-ok' : 'badge-ng'}">${mentalOk ? 'OK' : 'NG'}</span>
+                    分析: <span class="badge ${analysisOk ? 'badge-ok' : 'badge-ng'}">${analysisOk ? 'OK' : 'NG'}</span><br>
+                    RR: ${r.riskReward || '-'}<br>
+                    損切: ${r.stopLoss || '-'}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function resetForm() {
+        if (!confirm('チェックと入力、保存済みの現在状態をすべてクリアしますか？\n※ 過去の記録一覧は消えません。')) return;
+
+        document.querySelectorAll('input[type="checkbox"]').forEach(el => el.checked = false);
+        document.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => el.value = '');
+        localStorage.removeItem(STATE_KEY);
+        updateProgress();
+    }
+
+    function clearRecords() {
+        if (!confirm('過去の記録をすべて削除しますか？\n※ 元に戻せません。')) return;
+        localStorage.removeItem(RECORD_KEY);
+        renderRecords();
+    }
+
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').catch((err) => {
+                    console.warn('Service Worker registration failed', err);
+                });
+            });
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadState();
+        updateProgress();
+        renderRecords();
+
+        document.querySelectorAll('[data-save]').forEach(el => {
+            el.addEventListener('change', saveState);
+            el.addEventListener('input', saveState);
+        });
+
+        registerServiceWorker();
+    });
+</script>
+
+</body>
+</html>
+

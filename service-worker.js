@@ -1,4 +1,4 @@
-const CACHE_NAME = 'trade-precheck-cache-v1';
+const CACHE_NAME = 'trade-precheck-cache-v2';
 const OFFLINE_URLS = [
   './',
   './index.html',
@@ -25,11 +25,27 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// HTMLは「ネット優先」、その他はキャッシュ優先
 self.addEventListener('fetch', (event) => {
+  const request = event.request;
+
+  // ナビゲーション（ページ本体）はネット優先
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => caches.match(request).then((res) => res || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // それ以外はキャッシュ優先
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    caches.match(request).then((cached) => cached || fetch(request))
   );
 });
 

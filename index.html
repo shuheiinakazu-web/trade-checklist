@@ -213,6 +213,34 @@
     <div class="progress" id="progressText">チェック完了: 0 / 4</div>
 
     <div class="card">
+        <div class="card-title">エントリー情報</div>
+        <div class="input-group">
+            <label for="trade_date">日付</label>
+            <input type="date" id="trade_date" data-save>
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+            <label for="trade_time">時間</label>
+            <input type="time" id="trade_time" data-save>
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+            <label for="symbol_input">取引銘柄</label>
+            <input type="text" id="symbol_input" data-save placeholder="例: USD/JPY">
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+            <label for="entry_input">エントリーポイント</label>
+            <input type="text" id="entry_input" data-save placeholder="例: 150.20 ロング">
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+            <label for="tp_input">利確ポイント (価格・場所)</label>
+            <input type="text" id="tp_input" data-save placeholder="例: 151.20 / 直近高値手前">
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+            <label for="q5_input">損切ポイント (価格・場所)</label>
+            <input type="text" id="q5_input" data-save placeholder="例: 150.50 / 直近安値下">
+        </div>
+    </div>
+
+    <div class="card">
         <div class="card-title">メンタルチェック</div>
         <div class="check-item">
             <input type="checkbox" id="q1" data-save>
@@ -249,10 +277,6 @@
     <div class="card">
         <div class="card-title">リスク管理</div>
         <div class="input-group">
-            <label for="q5_input">損切ポイント (価格・場所)</label>
-            <input type="text" id="q5_input" data-save placeholder="例: 150.50 / 直近安値下">
-        </div>
-        <div class="input-group" style="margin-top: 15px;">
             <label for="q4_input">リスク・リワード (比率)</label>
             <input type="text" id="q4_input" data-save placeholder="例: 1 : 2.5">
         </div>
@@ -339,6 +363,11 @@
     function saveRecord() {
         const record = {
             time: new Date().toISOString(),
+            tradeDate: document.getElementById('trade_date').value,
+            tradeTime: document.getElementById('trade_time').value,
+            symbol: document.getElementById('symbol_input').value,
+            entry: document.getElementById('entry_input').value,
+            takeProfit: document.getElementById('tp_input').value,
             q1: document.getElementById('q1').checked,
             q2: document.getElementById('q2').checked,
             q3: document.getElementById('q3').checked,
@@ -399,8 +428,11 @@
                     チェック: ${okCount} / 4<br>
                     メンタル: <span class="badge ${mentalOk ? 'badge-ok' : 'badge-ng'}">${mentalOk ? 'OK' : 'NG'}</span>
                     分析: <span class="badge ${analysisOk ? 'badge-ok' : 'badge-ng'}">${analysisOk ? 'OK' : 'NG'}</span><br>
-                    RR: ${r.riskReward || '-'}<br>
-                    損切: ${r.stopLoss || '-'}
+                    日付: ${r.tradeDate || '-'} ${r.tradeTime || ''}<br>
+                    銘柄: ${r.symbol || '-'} / エントリー: ${r.entry || '-'}<br>
+                    利確: ${r.takeProfit || '-'}<br>
+                    損切: ${r.stopLoss || '-'}<br>
+                    RR: ${r.riskReward || '-'}
                 </div>
             `;
             container.appendChild(div);

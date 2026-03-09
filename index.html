@@ -169,8 +169,51 @@
         }
         .history-actions {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
             margin-top: 8px;
+            gap: 8px;
+        }
+        .history-filters {
+            display: flex;
+            gap: 4px;
+        }
+        .history-export {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .history-month-input {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            color: #bbb;
+            border-radius: 999px;
+            padding: 4px 6px;
+            font-size: 0.75rem;
+        }
+        .history-export-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #bbb;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+        .history-export-btn:active {
+            opacity: 0.7;
+        }
+        .history-filter-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #bbb;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+        .history-filter-btn.active {
+            background: #2a2a2a;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
         }
         .history-clear-btn {
             background: transparent;
@@ -325,6 +368,15 @@
     <div class="card">
         <div class="card-title">過去の記録</div>
         <div class="history-actions">
+            <div class="history-filters">
+                <button type="button" id="filter_all" class="history-filter-btn">すべて</button>
+                <button type="button" id="filter_good" class="history-filter-btn">良い</button>
+                <button type="button" id="filter_bad" class="history-filter-btn">悪い</button>
+            </div>
+            <div class="history-export">
+                <input type="month" id="export_month" class="history-month-input">
+                <button type="button" class="history-export-btn" onclick="exportMonthlyCsv()">月次CSV</button>
+            </div>
             <button class="history-clear-btn" onclick="clearRecords()">全ての記録を削除</button>
         </div>
         <div id="historyList" class="history-list">
@@ -341,6 +393,7 @@
 <script>
     const STATE_KEY = 'trade_precheck_state_v1';
     const RECORD_KEY = 'trade_records_v1';
+    let historyFilter = 'all'; // 'all' | 'good' | 'bad'
 
     function loadState() {
         const saved = localStorage.getItem(STATE_KEY);
@@ -444,7 +497,20 @@
 
         container.innerHTML = '';
 
-        records.forEach((r, idx) => {
+        const filtered = records
+            .map((r, idx) => ({ r, idx }))
+            .filter(({ r }) => {
+                if (historyFilter === 'good') return r.quality === 'good';
+                if (historyFilter === 'bad') return r.quality === 'bad';
+                return true;
+            });
+
+        if (!filtered.length) {
+            container.innerHTML = '<div style="font-size:0.8rem; color:#777;">条件に合う記録がありません。</div>';
+            return;
+        }
+
+        filtered.forEach(({ r, idx }) => {
             const okCount = [r.q1, r.q2, r.q3, r.q6].filter(Boolean).length;
             const mentalOk = r.q1 && r.q6;
             const analysisOk = r.q2 && r.q3;
@@ -526,6 +592,104 @@
         renderRecords();
     }
 
+    function exportMonthlyCsv() {
+        const monthInput = document.getElementById('export_month');
+        if (!monthInput) return;
+        const month = monthInput.value; // "2026-03" など
+        if (!month) {
+            alert('出力したい月を選択してください。');
+            return;
+        }
+
+        const records = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
+        if (!records.length) {
+            alert('記録がありません。');
+            return;
+        }
+
+        const target = records.filter((r) => {
+            const d = (r.tradeDate || '').toString();
+            if (d.length >= 7) {
+                return d.slice(0, 7) === month;
+            }
+            const t = (r.time || '').toString();
+            if (t.length >= 7) {
+                return t.slice(0, 7) === month;
+            }
+            return false;
+        });
+
+        if (!target.length) {
+            alert('指定した月の記録がありません。');
+            return;
+        }
+
+        function f(v) {
+            const s = (v ?? '').toString().replace(/"/g, '""');
+            return `"${s}"`;
+        }
+
+        const header = [
+            '記録ID',
+            '記録日時(保存時刻)',
+            '取引日',
+            '取引時間',
+            '銘柄',
+            'エントリーポイント',
+            '利確ポイント',
+            '損切ポイント',
+            'RR',
+            'メンタルOK',
+            '分析OK',
+            '最終チェックOK',
+            'エントリー根拠メモ',
+            '決済日',
+            '決済ポイント',
+            '利益',
+            '損失',
+            '評価(良/悪/未分類)'
+        ];
+
+        const lines = [header.map(f).join(',')];
+
+        target.forEach((r, idx) => {
+            const qualityLabel =
+                r.quality === 'good' ? '良いトレード' : r.quality === 'bad' ? '悪いトレード' : '未分類';
+            const row = [
+                String(idx + 1),
+                formatDate(r.time || ''),
+                r.tradeDate || '',
+                r.tradeTime || '',
+                r.symbol || '',
+                r.entry || '',
+                r.takeProfit || '',
+                r.stopLoss || '',
+                r.riskReward || '',
+                r.q1 ? 'OK' : 'NG',
+                r.q2 && r.q3 ? 'OK' : 'NG',
+                r.final ? 'OK' : 'NG',
+                r.reason || '',
+                r.closeDate || '',
+                r.closePrice || '',
+                r.profit || '',
+                r.loss || '',
+                qualityLabel
+            ];
+            lines.push(row.map(f).join(','));
+        });
+
+        const csv = lines.join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trade-records-${month}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
     function resetForm() {
         if (!confirm('チェックと入力、保存済みの現在状態をすべてクリアしますか？\n※ 過去の記録一覧は消えません。')) return;
 
@@ -561,8 +725,32 @@
             el.addEventListener('input', saveState);
         });
 
+        setupHistoryFilters();
+
         registerServiceWorker();
     });
+
+    function setupHistoryFilters() {
+        const allBtn = document.getElementById('filter_all');
+        const goodBtn = document.getElementById('filter_good');
+        const badBtn = document.getElementById('filter_bad');
+        if (!allBtn || !goodBtn || !badBtn) return;
+
+        function setActive(type) {
+            historyFilter = type;
+            [allBtn, goodBtn, badBtn].forEach((btn) => btn.classList.remove('active'));
+            if (type === 'all') allBtn.classList.add('active');
+            if (type === 'good') goodBtn.classList.add('active');
+            if (type === 'bad') badBtn.classList.add('active');
+            renderRecords();
+        }
+
+        allBtn.addEventListener('click', () => setActive('all'));
+        goodBtn.addEventListener('click', () => setActive('good'));
+        badBtn.addEventListener('click', () => setActive('bad'));
+
+        setActive('all');
+    }
 </script>
 
 </body>

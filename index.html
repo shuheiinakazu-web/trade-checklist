@@ -103,7 +103,7 @@
             color: #888;
             margin-bottom: 5px;
         }
-        input[type="text"], input[type="number"] {
+        input[type="text"], input[type="number"], textarea {
             background: #2a2a2a;
             border: 1px solid #444;
             color: white;
@@ -112,7 +112,7 @@
             font-size: 1rem;
             outline: none;
         }
-        input[type="text"]:focus, input[type="number"]:focus {
+        input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
             border-color: var(--accent-color);
         }
         .primary-btn {
@@ -238,10 +238,24 @@
                 <small>(優位性のあるパターンか)</small>
             </label>
         </div>
+        <div class="input-group" style="margin-top: 8px;">
+            <label for="reason_input">エントリー根拠（メモ）</label>
+            <textarea id="reason_input" data-save rows="3" placeholder="例: ダブルボトム＋出来高増加＋4h足MACDゴールデンクロス など"></textarea>
+        </div>
         <div class="check-item">
             <input type="checkbox" id="q3" data-save>
             <label for="q3">
                 4h / 日足 / 週足のMACDを確認したか？
+            </label>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">曜日チェック</div>
+        <div class="check-item">
+            <input type="checkbox" id="weekday_ok" data-save>
+            <label for="weekday_ok">
+                火曜・木曜・金曜である
             </label>
         </div>
     </div>
@@ -368,6 +382,7 @@
             symbol: document.getElementById('symbol_input').value,
             entry: document.getElementById('entry_input').value,
             takeProfit: document.getElementById('tp_input').value,
+            reason: document.getElementById('reason_input').value,
             q1: document.getElementById('q1').checked,
             q2: document.getElementById('q2').checked,
             q3: document.getElementById('q3').checked,
@@ -430,6 +445,7 @@
                     分析: <span class="badge ${analysisOk ? 'badge-ok' : 'badge-ng'}">${analysisOk ? 'OK' : 'NG'}</span><br>
                     日付: ${r.tradeDate || '-'} ${r.tradeTime || ''}<br>
                     銘柄: ${r.symbol || '-'} / エントリー: ${r.entry || '-'}<br>
+                    根拠: ${r.reason || '-'}<br>
                     利確: ${r.takeProfit || '-'}<br>
                     損切: ${r.stopLoss || '-'}<br>
                     RR: ${r.riskReward || '-'}

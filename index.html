@@ -183,6 +183,21 @@
         .history-clear-btn:active {
             opacity: 0.7;
         }
+        .record-actions {
+            margin-top: 6px;
+            text-align: right;
+        }
+        .history-edit-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #bbb;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+        }
+        .history-edit-btn:active {
+            opacity: 0.7;
+        }
         .footer {
             text-align: center;
             font-size: 0.75rem;
@@ -389,7 +404,12 @@
             q6: document.getElementById('q6').checked,
             riskReward: document.getElementById('q4_input').value,
             stopLoss: document.getElementById('q5_input').value,
-            final: document.getElementById('final').checked
+            final: document.getElementById('final').checked,
+            closeDate: '',
+            closePrice: '',
+            profit: '',
+            loss: '',
+            quality: ''
         };
 
         const currentRecords = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
@@ -448,11 +468,62 @@
                     根拠: ${r.reason || '-'}<br>
                     利確: ${r.takeProfit || '-'}<br>
                     損切: ${r.stopLoss || '-'}<br>
+                    決済日: ${r.closeDate || '-'}<br>
+                    決済ポイント: ${r.closePrice || '-'}<br>
+                    利益: ${r.profit || '-'} / 損失: ${r.loss || '-'}<br>
+                    評価: <span class="badge ${
+                        r.quality === 'good' ? 'badge-ok' : r.quality === 'bad' ? 'badge-ng' : ''
+                    }">${
+                        r.quality === 'good' ? '良いトレード' : r.quality === 'bad' ? '悪いトレード' : '未分類'
+                    }</span><br>
                     RR: ${r.riskReward || '-'}
+                </div>
+                <div class="record-actions">
+                    <button type="button" class="history-edit-btn" data-idx="${idx}">決済情報を入力・編集</button>
                 </div>
             `;
             container.appendChild(div);
         });
+
+        container.querySelectorAll('.history-edit-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const idx = Number(btn.getAttribute('data-idx'));
+                editSettlement(idx);
+            });
+        });
+    }
+
+    function editSettlement(index) {
+        const records = JSON.parse(localStorage.getItem(RECORD_KEY) || '[]');
+        const r = records[index];
+        if (!r) return;
+
+        const closeDate = prompt('決済日 (例: 2026-03-03)', r.closeDate || '');
+        if (closeDate === null) return;
+        const closePrice = prompt('決済ポイント (価格・場所)', r.closePrice || '');
+        if (closePrice === null) return;
+        const profit = prompt('利益（金額・pipsなど。ない場合は空欄か0）', r.profit || '');
+        if (profit === null) return;
+        const loss = prompt('損失（金額・pipsなど。ない場合は空欄か0）', r.loss || '');
+        if (loss === null) return;
+        const qualityInput = prompt('このトレードの評価（良い=1, 悪い=2, 未分類=空欄）', r.quality === 'good' ? '1' : r.quality === 'bad' ? '2' : '');
+        if (qualityInput === null) return;
+
+        r.closeDate = closeDate;
+        r.closePrice = closePrice;
+        r.profit = profit;
+        r.loss = loss;
+        if (qualityInput === '1') {
+            r.quality = 'good';
+        } else if (qualityInput === '2') {
+            r.quality = 'bad';
+        } else {
+            r.quality = '';
+        }
+
+        records[index] = r;
+        localStorage.setItem(RECORD_KEY, JSON.stringify(records));
+        renderRecords();
     }
 
     function resetForm() {
